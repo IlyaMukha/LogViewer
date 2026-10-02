@@ -3,17 +3,15 @@
     public class Project
     {
         public string Name { get; set; } = string.Empty;
-        public string IisSite { get; set; } = string.Empty;
         public string PhysicalPath { get; set; } = string.Empty;
+        public string ConfigTargetPath { get; set; } = string.Empty;
         public string ConfigPath { get; set; } = string.Empty;
         public string LogsPath { get; set; } = string.Empty;
-        public string NewLogsPath { get; set; } = string.Empty;
-        public ProjectsType ProjectType { get; set; }
+        public List<LogDirectorie> LogDirectories { get; set; } = new();
     }
-    public enum ProjectsType
+    public class LogDirectorie
     {
-        BpmSoft,
-        TerraSoft, 
-        None
+        public string Name { get; set; } = string.Empty;
+        public string ShortName { get; set; } = string.Empty;
     }
 }

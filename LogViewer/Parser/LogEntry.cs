@@ -2,19 +2,16 @@
 
 namespace ConsoleApp1
 {
-    /// <summary>
-    /// Результат анализа: сообщение (ошибка), количество вхождений, уровень.
-    /// </summary>
     public sealed class LogEntry
     {
-        public string Level { get; }
+        public string Level { get; } // Тип
         public string Logger { get; }
-        public string Message { get; }   // сама ошибка
+        public string Message { get; } // Текст
         public string Signature { get; }
 
-        public int Count;                // количество вхождений
-        public string? FirstFile;
-        public string? FirstTimestamp;
+        public int Count; // Кол-во
+        public string? FirstFile; // Файл где выводится
+        public string? FirstTimestamp; // Время первого вхождения
 
         public LogEntry(string level, string logger, string message, string signature)
         {
@@ -25,8 +22,5 @@ namespace ConsoleApp1
         }
 
         public bool IsError => Level is "ERROR" or "FATAL";
-
-        public override string ToString()
-            => $"[{Count,5}] {Level,-5} {Logger} - {Message}";
     }
 }

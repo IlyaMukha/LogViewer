@@ -11,6 +11,7 @@
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public LogType LogType { get; set; }
+        public int LogCount { get; set; }
     }
     public class EexseptionDto
     {

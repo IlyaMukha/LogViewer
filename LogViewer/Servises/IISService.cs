@@ -19,6 +19,7 @@ namespace LogViewer.Servises
                 string physicalPath = string.Empty;
                 string siteName = site.Name;
                 string logPath = string.Empty;
+                string configTargetPath = string.Empty;
                 string configPath = string.Empty;
 
                 var application = site.Applications.FirstOrDefault(app => !app.Path.Contains('0'));
@@ -36,47 +37,55 @@ namespace LogViewer.Servises
                 if (string.IsNullOrWhiteSpace(physicalPath))
                     continue;
 
-                configPath = TryGetConfigPath(physicalPath);
-                logPath =  TryGetLogPath(configPath, physicalPath);
+                configTargetPath = TryGetConfigTargetPath(physicalPath, "nlog.targets.config");
+                configPath = TryGetConfigTargetPath(physicalPath, "nlog.config");
+                logPath =  TryGetLogPath(configTargetPath, physicalPath);
                 var newLogPath = ChangeString(physicalPath, logPath, siteName);
+                var logDirectories = GetLogDirectories(newLogPath);
+                List<LogDirectorie> logDirectories_list = new List<LogDirectorie>();
+                foreach (var dir in logDirectories)
+                {
+                    logDirectories_list.Add(new LogDirectorie { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')) });
+                }
 
                 result.Add(new Project
                 {
                     Name = siteName,
-                    IisSite = siteName,
                     PhysicalPath = physicalPath,
+                    ConfigTargetPath = configTargetPath,
                     ConfigPath = configPath,
-                    LogsPath = logPath,
-                    NewLogsPath = newLogPath,
+                    LogsPath = newLogPath,
+                    LogDirectories = logDirectories_list
                 });
             }
             return result;
         }
-
-        public static string TryGetConfigPath(string physicalPath)
+        private static string TryGetConfigTargetPath(string physicalPath, string confugFile)
         {
-            var nlogPath = Path.Combine(physicalPath, "nlog.targets.config");
+            var nlogPath = Path.Combine(physicalPath, confugFile);
 
-            if(File.Exists(nlogPath))
+            if (File.Exists(nlogPath))
             {
                 return nlogPath;
             }
-            else if (Directory.Exists(Path.Combine(physicalPath, "BPMSoft.WebApp")) && File.Exists(Path.Combine(physicalPath, "BPMSoft.WebApp\\nlog.targets.config"))  )
+
+            var subDirs = new[] { "BPMSoft.WebApp", "Terrasoft.WebApp" };
+
+            foreach (var subDir in subDirs)
             {
-                return Path.Combine(physicalPath, "BPMSoft.WebApp\\nlog.targets.config");
+                var fullPath = Path.Combine(physicalPath, subDir, confugFile);
+                if (Directory.Exists(Path.Combine(physicalPath, subDir)) && File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
             }
-            else if (Directory.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp")) && File.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp\\nlog.targets.config")))
-            {
-                return Path.Combine(physicalPath, "Terrasoft.WebApp\\nlog.targets.config");
-            }
-            else if (Directory.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp")) && File.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp\\log4net.config")))
+
+            if (Directory.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp")) && File.Exists(Path.Combine(physicalPath, "Terrasoft.WebApp\\log4net.config")))
             {
                 return Path.Combine(physicalPath, "Terrasoft.WebApp\\log4net.config");
             }
-            else
-            {
-                return string.Empty;
-            }
+
+            return string.Empty;
         }
         public static string TryGetLogPath(string configPath, string physicalPath)
         {
@@ -138,11 +147,8 @@ namespace LogViewer.Servises
 
             return conversionPattern ?? string.Empty;
         }
-
         private static string ChangeString(string physicalPath, string logPath, string siteName)
         {
-
-            //"${TEMP}\\BPMonline\\Site_%AspNet{SiteId}\\%AspNet{ApplicationPath}\\Log\\"
             logPath = logPath.Replace("${tempdir}", "C:\\Windows\\Temp");
             logPath = logPath.Replace("${TEMP}", "C:\\Windows\\Temp");
             logPath = logPath.Replace("${iis-site-name}", siteName);
@@ -154,6 +160,19 @@ namespace LogViewer.Servises
             logPath = logPath.Replace("Logs/", "Logs");
             logPath = logPath.Replace("/", "\\");
             return logPath;
+        }
+        private static List<string> GetLogDirectories(string logsPath)
+        {
+            if (string.IsNullOrWhiteSpace(logsPath) ||
+                !Directory.Exists(logsPath))
+            {
+                return new List<string>();
+            }
+
+            return Directory
+                .GetDirectories(logsPath)
+                .OrderBy(x => x)
+                .ToList();
         }
     }
 }
