@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace ConsoleApp1
@@ -54,7 +50,6 @@ namespace ConsoleApp1
 
             var ns = root.Name.Namespace;
 
-            // 1. variables
             foreach (var v in root.Descendants(ns + "variable"))
             {
                 var name = (string?)v.Attribute("name");
@@ -63,7 +58,6 @@ namespace ConsoleApp1
                     cfg.Variables[name] = value;
             }
 
-            // 2. targets
             var targetsEl = root.Element(ns + "targets");
             if (targetsEl != null)
             {
@@ -82,7 +76,6 @@ namespace ConsoleApp1
                         Layout = (string?)t.Attribute("layout"),
                     };
 
-                    // nested <layout xsi:type="JsonLayout">
                     var nestedLayout = t.Element(ns + "layout");
                     if (nestedLayout != null)
                     {
@@ -92,11 +85,9 @@ namespace ConsoleApp1
                             target.IsJson = true;
                     }
 
-                    // расширить переменные
                     if (target.FileName != null) target.FileName = cfg.ExpandVariables(target.FileName);
                     if (target.Layout != null) target.Layout = cfg.ExpandVariables(target.Layout);
 
-                    // basename
                     if (target.FileName != null)
                     {
                         var idx = target.FileName.LastIndexOfAny(new[] { '/', '\\' });
@@ -109,7 +100,6 @@ namespace ConsoleApp1
                 }
             }
 
-            // 3. rules
             var rulesEl = root.Element(ns + "rules");
             if (rulesEl != null)
             {

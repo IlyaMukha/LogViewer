@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace ConsoleApp1
+namespace LogViewer.Parser
 {
     internal static class LayoutParser
     {

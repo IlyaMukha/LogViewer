@@ -37,7 +37,7 @@ namespace LogViewer.Controllers
 
             foreach (var e in all)
             {
-                result.Add(new LogsDTO { Title = e.Message, LogType = e.IsError? LogType.Exseption : LogType.Information, LogCount = e.Count });
+                result.Add(new LogsDTO { Title = e.Title, LogType = LogType.Warning, LogCount = e.Exceptions.Count });
             }
 
             return new ResultDto { logsDTOs = result,  };

@@ -19,9 +19,9 @@
     }
     public enum LogType
     {
-        Information,
-        Warning,
-        Exseption,
+        Information = 3,
+        Warning = 1,
+        Exseption = 2,
 
     }
 }
