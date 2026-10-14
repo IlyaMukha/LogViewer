@@ -1,4 +1,5 @@
 ﻿using LogViewer.DTO;
+using LogViewer.Enums;
 using LogViewer.Models;
 using Microsoft.Web.Administration;
 using System.Xml.Linq;
@@ -45,7 +46,7 @@ namespace LogViewer.Servises
                 List<LogDirectorie> logDirectories_list = new List<LogDirectorie>();
                 foreach (var dir in logDirectories)
                 {
-                    logDirectories_list.Add(new LogDirectorie { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')) });
+                    logDirectories_list.Add(new LogDirectorie { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')), Type = FileSystemType.Directory });
                 }
 
                 result.Add(new Project
@@ -173,6 +174,22 @@ namespace LogViewer.Servises
                 .GetDirectories(logsPath)
                 .OrderBy(x => x)
                 .ToList();
+        }
+        public static List<LogDirectorie> GetLogFiles(string directoriePath)
+        {
+            var result = new List<LogDirectorie>();
+            foreach(var dir in Directory.GetDirectories(directoriePath))
+            {
+                LogDirectorie temp = new LogDirectorie() { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')), Type = FileSystemType.Directory };
+                result.Add(temp);
+            }
+            foreach (var file in Directory.GetFiles(directoriePath))
+            {
+                LogDirectorie temp = new LogDirectorie() { Name = file, ShortName = Path.GetFileName(file.TrimEnd('\\')), Type = FileSystemType.File };
+                result.Add(temp);
+            }
+            
+            return result;            
         }
     }
 }

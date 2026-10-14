@@ -17,6 +17,12 @@ namespace LogViewer.Controllers
             var result = IISService.GetPaths();
             return Ok(result);
         }
+        [HttpPost("SubDir")]
+        public ActionResult<List<LogDirectorie>> GetSubDir([FromBody] string dir)
+        {
+            var result = IISService.GetLogFiles(dir);
+            return Ok(result);
+        }
 
         [HttpPost("Logs", Name = "GetExseptionFromLogs")]
         public async Task<ResultDto> GetExseptionFromLogs([FromBody] LogRequestDto requestDto)

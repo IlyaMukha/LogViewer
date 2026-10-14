@@ -1,4 +1,6 @@
-﻿namespace LogViewer.Models
+﻿using LogViewer.Enums;
+
+namespace LogViewer.Models
 {
     public class Project
     {
@@ -13,5 +15,6 @@
     {
         public string Name { get; set; } = string.Empty;
         public string ShortName { get; set; } = string.Empty;
+        public FileSystemType Type { get; set; }
     }
 }
