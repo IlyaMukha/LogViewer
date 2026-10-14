@@ -1,8 +1,10 @@
-﻿namespace LogViewer.DTO
+﻿using ConsoleApp1;
+
+namespace LogViewer.DTO
 {
     public class ResultDto
     {
-        public List<LogsDTO> logsDTOs { get; set; } = new();
+        public List<LogEntry> logsDTOs { get; set; } = new();
         public bool IsExseption { get; set; }
         public EexseptionDto? Exseptions { get; set; }
     }

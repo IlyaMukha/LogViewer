@@ -67,15 +67,15 @@ namespace ConsoleApp1
                     };
                     dict[r.Signature] = entry;
                 }
-                entry.Exceptions.Add(r.Record);
+                entry.AllLogs.Add(r.Record);
             }
 
             foreach (var e in dict.Values)
-                e.Exceptions.Sort((a, b) => a.dateTime.CompareTo(b.dateTime));
+                e.AllLogs.Sort((a, b) => a.dateTime.CompareTo(b.dateTime));
 
             return dict.Values
                 .OrderByDescending(x => x.Type is LogLevel.Error or LogLevel.Fatal)
-                .ThenByDescending(x => x.Exceptions.Count)
+                .ThenByDescending(x => x.AllLogs.Count)
                 .ToList();
         }
 

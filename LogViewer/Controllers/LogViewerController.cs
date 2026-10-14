@@ -39,14 +39,7 @@ namespace LogViewer.Controllers
             var analyzer = new LogAnalyzer();
             var all = await analyzer.AnalyzeAsync(root, nlogPath);
 
-            List<LogsDTO> result = new List<LogsDTO>();
-
-            foreach (var e in all)
-            {
-                result.Add(new LogsDTO { Title = e.Title, LogType = LogType.Warning, LogCount = e.Exceptions.Count });
-            }
-
-            return new ResultDto { logsDTOs = result,  };
+            return new ResultDto { logsDTOs = all,  };
         }
 
         [HttpPost("Exseptions", Name = "GetExseptionFromLogsExseptions")]

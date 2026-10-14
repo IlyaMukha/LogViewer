@@ -15,7 +15,7 @@ namespace ConsoleApp1
         public string Title { get; set; } = "";
         public string FullText { get; set; } = "";
         public LogLevel Type { get; set; }
-        public List<LogRecord> Exceptions { get; set; } = new();
+        public List<LogRecord> AllLogs { get; set; } = new();
 
         public override string ToString() => $"{Type.ToString().ToUpperInvariant(),-5} {Title}";
     }
