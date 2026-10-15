@@ -5,4 +5,9 @@
         public string Url { get; set; } = string.Empty;
         public string UrlConfig { get; set; } = string.Empty;
     }
+
+    public sealed class ReadLogFileRequest
+    {
+        public string Path { get; set; } = "";
+    }
 }

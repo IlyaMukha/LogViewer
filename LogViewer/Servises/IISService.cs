@@ -175,21 +175,5 @@ namespace LogViewer.Servises
                 .OrderBy(x => x)
                 .ToList();
         }
-        public static List<LogDirectorie> GetLogFiles(string directoriePath)
-        {
-            var result = new List<LogDirectorie>();
-            foreach(var dir in Directory.GetDirectories(directoriePath))
-            {
-                LogDirectorie temp = new LogDirectorie() { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')), Type = FileSystemType.Directory };
-                result.Add(temp);
-            }
-            foreach (var file in Directory.GetFiles(directoriePath))
-            {
-                LogDirectorie temp = new LogDirectorie() { Name = file, ShortName = Path.GetFileName(file.TrimEnd('\\')), Type = FileSystemType.File };
-                result.Add(temp);
-            }
-            
-            return result;            
-        }
     }
 }

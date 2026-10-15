@@ -20,8 +20,43 @@ namespace LogViewer.Controllers
         [HttpPost("SubDir")]
         public ActionResult<List<LogDirectorie>> GetSubDir([FromBody] string dir)
         {
-            var result = IISService.GetLogFiles(dir);
+            var result = LogFileService.GetLogFiles(dir);
             return Ok(result);
+        }
+        [HttpPost("ReadLogFile")]
+        public async Task<ActionResult<List<LogRecord>>> ReadLogFile([FromBody] ReadLogFileRequest request)
+        {
+            try
+            {
+                var records = await LogFileService.ReadLogFileAsync(request.Path);
+                return Ok(records);
+            }
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return StatusCode(403, new
+                {
+                    message = "Нет доступа к указанному файлу."
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidDataException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (IOException)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Ошибка при чтении файла."
+                });
+            }
         }
 
         [HttpPost("Logs", Name = "GetExseptionFromLogs")]
@@ -40,12 +75,6 @@ namespace LogViewer.Controllers
             var all = await analyzer.AnalyzeAsync(root, nlogPath);
 
             return new ResultDto { logsDTOs = all,  };
-        }
-
-        [HttpPost("Exseptions", Name = "GetExseptionFromLogsExseptions")]
-        public ResultDto GetExseptionFromLogsExseptions([FromBody] LogRequestDto requestDto)
-        {
-            return new ResultDto { IsExseption = true, Exseptions = new EexseptionDto { ErrorMessage = "Запрос говно, ОШИБКА!" } };
         }
     }
 }
