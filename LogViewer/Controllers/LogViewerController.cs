@@ -23,6 +23,22 @@ namespace LogViewer.Controllers
             var result = LogFileService.GetLogFiles(dir);
             return Ok(result);
         }
+        [HttpPost("EventViewer")]
+        public async Task<ActionResult<List<LogEntry>>> GetEventViewerLogs([FromBody] GetEventViewerLogsRequest request)
+        {
+            try
+            {
+                var result = EventViewerService.GetEvetViewerLog(request.StartDate, request.EndDate);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = ex.Message
+                });
+            }
+        }
         [HttpPost("ReadLogFile")]
         public async Task<ActionResult<List<LogRecord>>> ReadLogFile([FromBody] ReadLogFileRequest request)
         {

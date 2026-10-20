@@ -25,6 +25,8 @@ namespace ConsoleApp1
         public string Text { get; set; } = "";
         public DateTime dateTime { get; set; }
         public string File { get; set; } = "";
+        public LogLevel Type { get; set; }
+        public int Count { get; set; }
 
         public static LogRecord Create(string text, string timestamp, string file)
             => new LogRecord
