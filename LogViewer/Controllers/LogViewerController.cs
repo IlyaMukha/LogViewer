@@ -165,7 +165,7 @@ namespace LogViewer.Controllers
             //                {
             //                    File = s.File,
             //                    Time = s.Time,
-            //                    Text = LogFileService.NormalizeText(s.Text)
+            //                    Text = s.Text
             //                })
             //                .ToList()
             //        };
