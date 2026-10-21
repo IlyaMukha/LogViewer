@@ -25,6 +25,10 @@ public static partial class LogFileService
         @"(GET|POST|PUT|DELETE)\s+([^\s?]+)[^\s]*\s+\d+\s+-\s+::1\s+.*?(http[^\s]+)?\s+(\d{3})\s+\d+",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    private static readonly Regex FkRegex = new Regex(
+        @"\bFK[a-zA-Z0-9]{15,40}\b",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static readonly Regex LogLineRegex = new(@"^(?<date>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})\s+", RegexOptions.Compiled);
 
     public static async Task<List<LogRecord>> ReadLogFileAsync(string path)
@@ -165,8 +169,9 @@ public static partial class LogFileService
 
                 currentLog.LogOfImpactList.Add(new LogOfImpact
                 {
+                    Text = currentBody.ToString().TrimEnd(),
                     File = Path.GetFileName(path),
-                    Time = [logTime]
+                    Time = logTime
                 });
 
                 currentBody.Clear();
@@ -199,20 +204,26 @@ public static partial class LogFileService
         return result;
     }
 
-    public static string NormalizeTitle(string title)
+    public static string NormalizeText(string text)
     {
-        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
-        string decoded = title.Replace("\\u002B", "+");
+        string decoded = text.Replace("\\u002B", "+");
         try
         {
             decoded = Uri.UnescapeDataString(decoded);
         }
         catch { }
 
-        decoded = decoded.Replace("\\u0022", "\"").Replace("\"", "");
+        decoded = decoded.Replace("\\u0022", "\"");
+
+        decoded = decoded.Replace("\\u0027", "'");
+        decoded = decoded.Replace("\\u003E", ">");
+        decoded = decoded.Replace("\\u003C", "<"); 
+
 
         decoded = GuidRegex.Replace(decoded, "*");
+        decoded = FkRegex.Replace(decoded, "*");
 
         var webMatch = WebLogCleanRegex.Match(decoded);
         if (webMatch.Success)

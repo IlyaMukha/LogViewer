@@ -27,8 +27,9 @@ namespace ConsoleApp1
 
     public class LogOfImpact
     {
+        public string Text { get; set; } = string.Empty;
         public string File { get; set; } = string.Empty;
-        public List<DateTime> Time { get; set; } = [];
+        public DateTime Time { get; set; }
     }
 
     public sealed class LogEntry

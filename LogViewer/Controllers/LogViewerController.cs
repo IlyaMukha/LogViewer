@@ -5,6 +5,7 @@ using LogViewer.Servises;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Web.Administration;
 using System.Collections.Concurrent;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace LogViewer.Controllers
@@ -123,7 +124,7 @@ namespace LogViewer.Controllers
             //var allLogs = concurrentLogs.ToList();
 
             //var groupedLogs = allLogs
-            //    .GroupBy(log => LogFileService.NormalizeTitle(log.Title))
+            //    .GroupBy(log => LogFileService.NormalizeText(log.Title))
             //    .Select(group =>
             //    {
             //        var bestLog = group.OrderByDescending(g => g.FullText.Length).First();
@@ -145,7 +146,7 @@ namespace LogViewer.Controllers
             //            .Select(fileGroup => new LogOfImpact
             //            {
             //                File = fileGroup.Key,
-            //                Time = fileGroup.SelectMany(i => i.Time).OrderBy(t => t).ToList()
+            //                Time = fileGroup.Select(i => i.Time).OrderBy(t => t).First(),
             //            })
             //            .ToList();
 
@@ -159,22 +160,28 @@ namespace LogViewer.Controllers
             //            StartDate = group.Min(g => g.StartDate),
             //            EndDate = group.Max(g => g.EndDate),
 
-            //            LogOfImpactList = mergedImpacts
+            //            LogOfImpactList = group.SelectMany(g => g.LogOfImpactList)
+            //                .Select(s => new LogOfImpact
+            //                {
+            //                    File = s.File,
+            //                    Time = s.Time,
+            //                    Text = LogFileService.NormalizeText(s.Text)
+            //                })
+            //                .ToList()
             //        };
             //    })
-            //    .OrderByDescending(log => log.LogOfImpactList.Sum(i => i.Time.Count))
             //    .ToList();
 
             //var groupByType = groupedLogs.GroupBy(g => g.Type).ToList();
 
             //var jsonOptions = new JsonSerializerOptions
             //{
-            //    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.Create(System.Text.Unicode.UnicodeRanges.All),
+            //    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
             //    WriteIndented = true
             //};
 
             //string jsonResult = JsonSerializer.Serialize(groupByType, jsonOptions);
-            
+
             #endregion
 
             var nlogPath = requestDto.UrlConfig.Trim().Trim('"');
