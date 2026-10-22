@@ -93,103 +93,84 @@ namespace LogViewer.Controllers
                 return null;
             }
 
-            #region New
+            var concurrentLogs = new ConcurrentBag<LogEntity>();
 
-            //var concurrentLogs = new ConcurrentBag<LogEntity>();
+            var logFiles = Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories);
 
-            //var logFiles = Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories);
+            var parallelOptions = new ParallelOptions
+            {
+                MaxDegreeOfParallelism = 4
+            };
 
-            //var parallelOptions = new ParallelOptions
-            //{
-            //    MaxDegreeOfParallelism = 4
-            //};
+            await Parallel.ForEachAsync(logFiles, parallelOptions, async (file, cancellationToken) =>
+            {
+                try
+                {
+                    var fileLogs = await LogFileService.ReadLogFileNewAsync(file);
 
-            //await Parallel.ForEachAsync(logFiles, parallelOptions, async (file, cancellationToken) =>
-            //{
-            //    try
-            //    {
-            //        var fileLogs = await LogFileService.ReadLogFileNewAsync(file);
+                    foreach (var log in fileLogs)
+                    {
+                        concurrentLogs.Add(log);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Ошибка параллельного парсинга файла {file}: {ex.Message}");
+                }
+            });
 
-            //        foreach (var log in fileLogs)
-            //        {
-            //            concurrentLogs.Add(log);
-            //        }
-            //    }
-            //    catch (Exception ex)
-            //    {
-            //        Console.WriteLine($"Ошибка параллельного парсинга файла {file}: {ex.Message}");
-            //    }
-            //});
+            var allLogs = concurrentLogs.ToList();
 
-            //var allLogs = concurrentLogs.ToList();
+            var groupedLogs = allLogs
+                .GroupBy(log => LogFileService.NormalizeText(log.Title))
+                .Select(group =>
+                {
+                    var bestLog = group.OrderByDescending(g => g.FullText.Length).First();
 
-            //var groupedLogs = allLogs
-            //    .GroupBy(log => LogFileService.NormalizeText(log.Title))
-            //    .Select(group =>
-            //    {
-            //        var bestLog = group.OrderByDescending(g => g.FullText.Length).First();
+                    string cleanFullText = bestLog.FullText
+                        .Replace("\\u002B", "+")
+                        .Replace("\\n", "\n")
+                        .Replace("\\r", "\r");
 
-            //        string cleanFullText = bestLog.FullText
-            //            .Replace("\\u002B", "+")
-            //            .Replace("\\n", "\n")
-            //            .Replace("\\r", "\r");
+                    try
+                    {
+                        cleanFullText = Uri.UnescapeDataString(cleanFullText);
+                    }
+                    catch { }
 
-            //        try
-            //        {
-            //            cleanFullText = Uri.UnescapeDataString(cleanFullText);
-            //        }
-            //        catch { }
+                    var mergedImpacts = group
+                        .SelectMany(g => g.LogOfImpactList)
+                        .GroupBy(impact => impact.File)
+                        .Select(fileGroup => new LogOfImpact
+                        {
+                            File = fileGroup.Key,
+                            Time = fileGroup.Select(i => i.Time).OrderBy(t => t).First(),
+                        })
+                        .ToList();
 
-            //        var mergedImpacts = group
-            //            .SelectMany(g => g.LogOfImpactList)
-            //            .GroupBy(impact => impact.File)
-            //            .Select(fileGroup => new LogOfImpact
-            //            {
-            //                File = fileGroup.Key,
-            //                Time = fileGroup.Select(i => i.Time).OrderBy(t => t).First(),
-            //            })
-            //            .ToList();
+                    return new LogEntity
+                    {
+                        Id = bestLog.Id,
+                        Type = bestLog.Type,
+                        Title = group.Key,
+                        FullText = cleanFullText.Trim(),
 
-            //        return new LogEntity
-            //        {
-            //            Id = bestLog.Id,
-            //            Type = bestLog.Type,
-            //            Title = group.Key,
-            //            FullText = cleanFullText.Trim(),
+                        StartDate = group.Min(g => g.StartDate),
+                        EndDate = group.Max(g => g.EndDate),
 
-            //            StartDate = group.Min(g => g.StartDate),
-            //            EndDate = group.Max(g => g.EndDate),
+                        LogOfImpactList = group.SelectMany(g => g.LogOfImpactList)
+                            .Select(s => new LogOfImpact
+                            {
+                                File = s.File,
+                                Time = s.Time,
+                                Text = s.Text
+                            })
+                            .ToList()
+                    };
+                })
+                .ToList();
 
-            //            LogOfImpactList = group.SelectMany(g => g.LogOfImpactList)
-            //                .Select(s => new LogOfImpact
-            //                {
-            //                    File = s.File,
-            //                    Time = s.Time,
-            //                    Text = s.Text
-            //                })
-            //                .ToList()
-            //        };
-            //    })
-            //    .ToList();
-
-            //var groupByType = groupedLogs.GroupBy(g => g.Type).ToList();
-
-            //var jsonOptions = new JsonSerializerOptions
-            //{
-            //    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            //    WriteIndented = true
-            //};
-
-            //string jsonResult = JsonSerializer.Serialize(groupByType, jsonOptions);
-
-            #endregion
-
-            var nlogPath = requestDto.UrlConfig.Trim().Trim('"');
-
-            var analyzer = new LogAnalyzer();
-            var all = await analyzer.AnalyzeAsync(root, nlogPath);
-
-            return new ResultDto { logsDTOs = all,  };
+            return new ResultDto { logs = groupedLogs };
         }
     }
 }

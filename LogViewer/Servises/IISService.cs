@@ -2,6 +2,7 @@
 using LogViewer.Enums;
 using LogViewer.Models;
 using Microsoft.Web.Administration;
+using System.Globalization;
 using System.Xml.Linq;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -46,7 +47,14 @@ namespace LogViewer.Servises
                 List<LogDirectorie> logDirectories_list = new List<LogDirectorie>();
                 foreach (var dir in logDirectories)
                 {
-                    logDirectories_list.Add(new LogDirectorie { Name = dir, ShortName = Path.GetFileName(dir.TrimEnd('\\')), Type = FileSystemType.Directory });
+                    string shortName = Path.GetFileName(dir.TrimEnd('\\'));
+                    logDirectories_list.Add(new LogDirectorie
+                    {
+                        Name = dir,
+                        ShortName = shortName,
+                        Type = FileSystemType.Directory,
+                        Date = DateTime.ParseExact(shortName, new[] { "yyyy-MM-dd", "yyyy_MM_dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None)
+                    });    
                 }
 
                 result.Add(new Project
@@ -56,7 +64,7 @@ namespace LogViewer.Servises
                     ConfigTargetPath = configTargetPath,
                     ConfigPath = configPath,
                     LogsPath = newLogPath,
-                    LogDirectories = logDirectories_list
+                    LogDirectories = logDirectories_list.OrderByDescending(x => x.Date).ToList()
                 });
             }
             return result;

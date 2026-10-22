@@ -16,5 +16,6 @@ namespace LogViewer.Models
         public string Name { get; set; } = string.Empty;
         public string ShortName { get; set; } = string.Empty;
         public FileSystemType Type { get; set; }
+        public DateTime Date { get; set; } = DateTime.MinValue;
     }
 }
