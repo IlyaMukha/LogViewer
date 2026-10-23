@@ -27,7 +27,7 @@ namespace LogViewer.Controllers
             return Ok(result);
         }
         [HttpPost("EventViewer")]
-        public async Task<ActionResult<List<LogEntry>>> GetEventViewerLogs([FromBody] GetEventViewerLogsRequest request)
+        public async Task<ActionResult<List<LogEntity>>> GetEventViewerLogs([FromBody] GetEventViewerLogsRequest request)
         {
             try
             {
@@ -43,17 +43,13 @@ namespace LogViewer.Controllers
             }
         }
         [HttpPost("ReadLogFile")]
-        public async Task<ActionResult<List<LogRecord>>> ReadLogFile([FromBody] ReadLogFileRequest request)
+        public async Task<ActionResult<ResultDto>> ReadLogFile([FromBody] LogRequestDto request)
         {
             try
-            {
-                var records = await LogFileService.ReadLogFileAsync(request.Path);
-                
-                #region New
-                //var recordsNew = await LogFileService.ReadLogFileNewAsync(request.Path);
-                #endregion
-
-                return Ok(records);
+            {                
+                var records = await LogFileService.ReadLogFileNewAsync(request.Url);
+                var result = new ResultDto { logs = records };
+                return Ok(result);
             }
             catch (FileNotFoundException ex)
             {

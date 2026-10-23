@@ -6,17 +6,18 @@ namespace LogViewer.Servises
 {
     public static class EventViewerService
     {
-        //public static readonly int maxEvents = 100;
-        //public static readonly DateTime startTime = DateTime.Now.AddDays(-1);
         public static readonly string[] logNames = ["Application", "System"];
-        public static List<LogEntry> GetEvetViewerLog(DateTime? StartDate = null, DateTime? EndDate = null)
+        public static List<LogEntity> GetEvetViewerLog(DateTime? StartDate = null, DateTime? EndDate = null)
         {
-            var result = new List<LogEntry>();
+            EndDate ??= DateTime.Now;
+            StartDate ??= EndDate.Value.AddDays(-7);
+            var result = new List<LogEntity>();
+            var helperList = new List<HelperModel>();
             foreach (string logName in logNames)
             {
                 try
                 {
-                    var conditions = new List<string>{"(Level=1 or Level=2)"};
+                    var conditions = new List<string>();
 
                     if (StartDate.HasValue)
                     {
@@ -31,7 +32,7 @@ namespace LogViewer.Servises
                         conditions.Add($"TimeCreated[@SystemTime <= '{endDate}']");
                     }
 
-                    string query =$"*[System[{string.Join(" and ", conditions)}]]";
+                    string query = conditions.Count > 0 ? $"*[System[{string.Join(" and ", conditions)}]]" : "*";
 
                     using var reader = new EventLogReader(
                         new EventLogQuery(logName, PathType.LogName, query)
@@ -40,13 +41,7 @@ namespace LogViewer.Servises
                         }
                     );
 
-                    LogEntry temp = new LogEntry
-                    {
-                        Title = logName,
-                        Type = LogLevel.Fatal
-                    };
-
-                    while(true)
+                    while (true)
                     {
                         EventRecord? record;
 
@@ -64,22 +59,38 @@ namespace LogViewer.Servises
 
                         using (record)
                         {
-                            temp.AllLogs.Add(new LogRecord
+                            HelperModel helper = new HelperModel();
+                            string description = "";
+                            try
                             {
-                                Text = $"{record.ProviderName}\n{record.FormatDescription() ?? "(нет описания)"}",
-                                dateTime = record.TimeCreated ?? DateTime.MinValue,
-                                Type = GetLogLevel(record.Level)
-                            });
+                                description = record.FormatDescription() ?? "(нет описания)";
+                            }
+                            catch (Exception ex)
+                            {
+                                description = $"Не удалось получить описание события: {ex.Message}";
+                            }
+
+
+                            helper.Date = record.TimeCreated ?? DateTime.MinValue; // Дата ошибки
+                            helper.Text = record.ProviderName; // инициатор ошибки (.NET или IIS POOL)
+                            helper.Description = description; // Описание ошибки
+                            helper.Type = GetLogLevel(record.Level); // Тип ошибки
+                            helper.GroupName = logName; // Группа System или Application
+                            helperList.Add(helper);
                         }
                     }
 
-                    result.Add(temp);
                 }
                 catch (Exception ex)
                 {
                     return result;
                 }
             }
+
+            Console.WriteLine(helperList); // Список всех ошибок изи Просмотра событий
+            // Нужно это програть через алгоритм и вернуть List<LogEntity>
+
+
             return result;
         }
 
@@ -87,12 +98,13 @@ namespace LogViewer.Servises
         {
             return lvl switch
             {
-                1 => LogLevel.Error,
+                0 => LogLevel.Unknow,
+                1 => LogLevel.Fatal,
                 2 => LogLevel.Error,
                 3 => LogLevel.Warn,
-                4 => LogLevel.Fatal,
-                5 => LogLevel.Fatal,
-                _ => LogLevel.Fatal
+                4 => LogLevel.Info,
+                5 => LogLevel.Debug,
+                _ => LogLevel.Unknow
             };
         }
     }
