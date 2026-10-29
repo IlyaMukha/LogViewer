@@ -27,11 +27,12 @@ namespace LogViewer.Controllers
             return Ok(result);
         }
         [HttpPost("EventViewer")]
-        public async Task<ActionResult<List<LogEntity>>> GetEventViewerLogs([FromBody] GetEventViewerLogsRequest request)
+        public async Task<ActionResult<ResultDto>> GetEventViewerLogs([FromBody] GetEventViewerLogsRequest request)
         {
             try
             {
-                var result = EventViewerService.GetEvetViewerLog(request.StartDate, request.EndDate);
+                var res = EventViewerService.GetEvetViewerLog(request.StartDate, request.EndDate);
+                var result = new ResultDto { logs = res };
                 return Ok(result);
             }
             catch (Exception ex)

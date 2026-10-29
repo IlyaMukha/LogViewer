@@ -56,16 +56,18 @@ namespace LogViewer.Servises
                         Date = DateTime.ParseExact(shortName, new[] { "yyyy-MM-dd", "yyyy_MM_dd" }, CultureInfo.InvariantCulture, DateTimeStyles.None)
                     });    
                 }
-
-                result.Add(new Project
+                if (configTargetPath != String.Empty)
                 {
-                    Name = siteName,
-                    PhysicalPath = physicalPath,
-                    ConfigTargetPath = configTargetPath,
-                    ConfigPath = configPath,
-                    LogsPath = newLogPath,
-                    LogDirectories = logDirectories_list.OrderByDescending(x => x.Date).ToList()
-                });
+                    result.Add(new Project
+                    {
+                        Name = siteName,
+                        PhysicalPath = physicalPath,
+                        ConfigTargetPath = configTargetPath,
+                        ConfigPath = configPath,
+                        LogsPath = newLogPath,
+                        LogDirectories = logDirectories_list.OrderByDescending(x => x.Date).ToList()
+                    });
+                } 
             }
             return result;
         }
