@@ -7,39 +7,44 @@ namespace LogViewer.Servises
     public static class EventViewerService
     {
         public static readonly string[] logNames = ["Application", "System"];
+
         public static List<LogEntity> GetEvetViewerLog(DateTime? StartDate = null, DateTime? EndDate = null)
         {
             EndDate ??= DateTime.Now;
             StartDate ??= EndDate.Value.AddDays(-7);
+
+            if (StartDate > EndDate)
+                throw new ArgumentException(
+                    "Дата начала не может быть больше даты окончания.");
+
             var result = new List<LogEntity>();
-            var helperList = new List<HelperModel>();
+
             foreach (string logName in logNames)
             {
                 try
                 {
-                    var conditions = new List<string>();
+                    string startDate = StartDate.Value
+                        .ToUniversalTime()
+                        .ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-                    if (StartDate.HasValue)
-                    {
-                        string startDate = StartDate.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-                        conditions.Add($"TimeCreated[@SystemTime >= '{startDate}']");
-                    }
+                    string endDate = EndDate.Value
+                        .ToUniversalTime()
+                        .ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
 
-                    if (EndDate.HasValue)
-                    {
-                        string endDate = EndDate.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
-
-                        conditions.Add($"TimeCreated[@SystemTime <= '{endDate}']");
-                    }
-
-                    string query = conditions.Count > 0 ? $"*[System[{string.Join(" and ", conditions)}]]" : "*";
+                    string query =
+                        $"*[System[" +
+                        $"TimeCreated[@SystemTime >= '{startDate}' " +
+                        $"and @SystemTime <= '{endDate}']" +
+                        $"]]";
 
                     using var reader = new EventLogReader(
-                        new EventLogQuery(logName, PathType.LogName, query)
+                        new EventLogQuery(
+                            logName,
+                            PathType.LogName,
+                            query)
                         {
                             ReverseDirection = true
-                        }
-                    );
+                        });
 
                     while (true)
                     {
@@ -49,8 +54,11 @@ namespace LogViewer.Servises
                         {
                             record = reader.ReadEvent();
                         }
-                        catch (EventLogException)
+                        catch (EventLogException ex)
                         {
+                            Console.Error.WriteLine(
+                                $"Ошибка чтения журнала {logName}: {ex.Message}");
+
                             break;
                         }
 
@@ -59,39 +67,101 @@ namespace LogViewer.Servises
 
                         using (record)
                         {
-                            HelperModel helper = new HelperModel();
-                            string description = "";
-                            try
-                            {
-                                description = record.FormatDescription() ?? "(нет описания)";
-                            }
-                            catch (Exception ex)
-                            {
-                                description = $"Не удалось получить описание события: {ex.Message}";
-                            }
-
-
-                            helper.Date = record.TimeCreated ?? DateTime.MinValue; // Дата ошибки
-                            helper.Text = record.ProviderName; // инициатор ошибки (.NET или IIS POOL)
-                            helper.Description = description; // Описание ошибки
-                            helper.Type = GetLogLevel(record.Level); // Тип ошибки
-                            helper.GroupName = logName; // Группа System или Application
-                            helperList.Add(helper);
+                            result.Add(ConvertToLogEntity(record, logName));
                         }
                     }
-
                 }
                 catch (Exception ex)
                 {
-                    return result;
+                    Console.Error.WriteLine(
+                        $"Ошибка обработки журнала {logName}: {ex.Message}");
                 }
             }
 
-            Console.WriteLine(helperList); // Список всех ошибок изи Просмотра событий
-            // Нужно это програть через алгоритм и вернуть List<LogEntity>
+            return GroupLogs(result);
+        }
 
+        private static List<LogEntity> GroupLogs(List<LogEntity> logs)
+        {
+            return logs
+                .GroupBy(x => new
+                {
+                    Title = LogFileService.NormalizeText(x.Title),
+                    x.Type,
+                    File = x.LogOfImpactList.FirstOrDefault()?.File
+                })
+                .Select(group =>
+                {
+                    var orderedLogs = group
+                        .OrderBy(x => x.StartDate)
+                        .ToList();
 
-            return result;
+                    var firstLog = orderedLogs[0];
+
+                    return new LogEntity
+                    {
+                        Id = firstLog.Id,
+                        Title = group.Key.Title,
+                        FullText = firstLog.FullText,
+                        Type = group.Key.Type,
+                        StartDate = orderedLogs.Min(x => x.StartDate),
+                        EndDate = orderedLogs.Max(x => x.EndDate),
+                        LogOfImpactList = orderedLogs
+                            .SelectMany(x => x.LogOfImpactList)
+                            .OrderByDescending(x => x.Time)
+                            .ToList()
+                    };
+                })
+                .OrderByDescending(x => x.EndDate)
+                .ToList();
+        }
+
+        private static LogEntity ConvertToLogEntity(
+            EventRecord record,
+            string logName)
+        {
+            DateTime logTime = record.TimeCreated ?? DateTime.MinValue;
+
+            string provider = record.ProviderName ?? "Unknown";
+
+            string description;
+
+            try
+            {
+                description = record.FormatDescription()
+                    ?? "(нет описания)";
+            }
+            catch (EventLogException)
+            {
+                description = "(не удалось получить описание события)";
+            }
+
+            LogLevel level = GetLogLevel(record.Level);
+
+            string title = $"{provider} - {description}";
+
+            // Нормализация применяется только к заголовку.
+            // Полное описание события сохраняется без изменений.
+            string normalizedTitle = LogFileService.NormalizeText(title);
+
+            return new LogEntity
+            {
+                Id = Guid.NewGuid(),
+                Title = normalizedTitle,
+                FullText = title,
+                Type = level,
+                StartDate = logTime,
+                EndDate = logTime,
+                LogOfImpactList =
+                [
+                    new LogOfImpact
+                    {
+                        Text = description,
+                        File = logName,
+                        Time = logTime
+                    }
+                ]
+            };
         }
 
         private static LogLevel GetLogLevel(byte? lvl)
